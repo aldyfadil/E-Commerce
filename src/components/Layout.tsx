@@ -1,6 +1,6 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, Heart, Search, Menu, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShoppingCart, User, Heart, Search, Menu, X, ArrowRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useCartStore } from '../store/cartStore';
 import { useAuthStore } from '../store/authStore';
@@ -9,6 +9,11 @@ import { cn } from '../lib/utils';
 export default function Layout() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+  
   const { items } = useCartStore();
   const { user, profile } = useAuthStore();
   const location = useLocation();
@@ -23,10 +28,82 @@ export default function Layout() {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setIsSearchOpen(false);
   }, [location]);
+
+  useEffect(() => {
+    if (isSearchOpen) {
+      searchInputRef.current?.focus();
+    }
+  }, [isSearchOpen]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
+      setSearchQuery('');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white font-sans text-slate-700">
+      {/* Search Overlay */}
+      <AnimatePresence>
+        {isSearchOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-white flex items-center justify-center px-4"
+          >
+            <button 
+              onClick={() => setIsSearchOpen(false)}
+              className="absolute top-8 right-8 p-4 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-full transition-all"
+            >
+              <X size={32} />
+            </button>
+            <div className="w-full max-w-4xl space-y-12">
+              <div className="space-y-4">
+                <p className="text-brand font-black uppercase tracking-[0.3em] text-[12px] text-center">Inquire Repository</p>
+                <h2 className="text-5xl md:text-7xl font-display font-black text-slate-900 text-center tracking-tight">Search Catalog.</h2>
+              </div>
+              <form onSubmit={handleSearch} className="relative group">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="What are you looking for?"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-slate-50 border-4 border-slate-50 px-10 py-10 rounded-[3rem] text-3xl font-display font-black text-slate-900 placeholder:text-slate-200 focus:outline-none focus:border-brand focus:bg-white transition-all shadow-2xl shadow-slate-100"
+                />
+                <button 
+                  type="submit"
+                  className="absolute right-6 top-1/2 -translate-y-1/2 w-20 h-20 bg-brand text-white rounded-full flex items-center justify-center hover:scale-105 transition-all shadow-xl shadow-brand/20"
+                >
+                  <ArrowRight size={32} />
+                </button>
+              </form>
+              <div className="flex flex-wrap items-center justify-center gap-6">
+                <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 w-full text-center mb-2">Popular Searches</p>
+                {['Living', 'Bedroom', 'Modern', 'Sale'].map(tag => (
+                  <button 
+                    key={tag}
+                    onClick={() => {
+                      navigate(`/shop?q=${tag}`);
+                      setIsSearchOpen(false);
+                    }}
+                    className="px-8 py-3 bg-slate-50 hover:bg-brand hover:text-white rounded-full text-[11px] font-black uppercase tracking-widest transition-all text-slate-500"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Navbar */}
       <nav
         className={cn(
@@ -48,7 +125,10 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center space-x-4">
-            <button className="p-2.5 hover:bg-brand-light hover:text-brand rounded-xl transition-all hidden md:block text-slate-400">
+            <button 
+              onClick={() => setIsSearchOpen(true)}
+              className="p-2.5 hover:bg-brand-light hover:text-brand rounded-xl transition-all hidden md:block text-slate-400"
+            >
               <Search size={20} />
             </button>
             <Link to="/profile" className="p-2.5 hover:bg-brand-light hover:text-brand rounded-xl transition-all relative text-slate-400">

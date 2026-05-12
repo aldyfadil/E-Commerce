@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { collection, query, getDocs, where, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Search, SlidersHorizontal, Grid3X3, List, ChevronDown } from 'lucide-react';
@@ -25,12 +26,25 @@ const CATEGORIES = [
 ];
 
 export default function Shop() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryParam = searchParams.get('category') || 'all';
+  const queryParam = searchParams.get('q') || '';
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [activeCategory, setActiveCategory] = useState(categoryParam);
   const [sortBy, setSortBy] = useState('newest');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(queryParam);
   const { addItem } = useCartStore();
+
+  // Sync state with URL params
+  useEffect(() => {
+    setActiveCategory(categoryParam);
+  }, [categoryParam]);
+
+  useEffect(() => {
+    setSearchQuery(queryParam);
+  }, [queryParam]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -62,7 +76,6 @@ export default function Shop() {
         setProducts(filteredData);
       } catch (error) {
         console.error("Error fetching products:", error);
-        // Fallback or empty state
       } finally {
         setLoading(false);
       }
@@ -70,6 +83,16 @@ export default function Shop() {
 
     fetchProducts();
   }, [activeCategory, sortBy, searchQuery]);
+
+  const handleCategoryChange = (id: string) => {
+    setActiveCategory(id);
+    if (id === 'all') {
+      searchParams.delete('category');
+    } else {
+      searchParams.set('category', id);
+    }
+    setSearchParams(searchParams);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-20 space-y-20">
@@ -90,7 +113,7 @@ export default function Shop() {
           {CATEGORIES.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
+              onClick={() => handleCategoryChange(cat.id)}
               className={cn(
                 "whitespace-nowrap px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-wider transition-all",
                 activeCategory === cat.id 
@@ -110,7 +133,16 @@ export default function Shop() {
               type="text"
               placeholder="Find your vibe..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearchQuery(val);
+                if (val) {
+                  searchParams.set('q', val);
+                } else {
+                  searchParams.delete('q');
+                }
+                setSearchParams(searchParams);
+              }}
               className="w-full bg-slate-50 border-2 border-slate-50 pl-14 pr-6 py-4 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:border-brand focus:bg-white transition-all placeholder:text-slate-300"
             />
           </div>
