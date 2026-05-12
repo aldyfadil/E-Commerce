@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A furniture item in the catalog",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "stock": { "type": "number" },
+        "rating": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "price", "category", "images", "stock"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A customer order",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "paid", "shipped", "delivered"] },
+        "shippingAddress": { "type": "object" },
+        "paymentMethod": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "items", "totalAmount", "status"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Platform user profile",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "fullName": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "wishlist": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "fullName", "role"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Furniture category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "icon": { "type": "string" }
+      },
+      "required": ["name", "slug"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of furniture products"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of customer orders"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Collection of product categories"
+    }
+  }
+}

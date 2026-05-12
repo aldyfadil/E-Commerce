@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // RBAC Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function isAdmin() {
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        request.auth.token.email == 'aldifadilla883@gmail.com'
+      );
+    }
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Products
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+      
+      function isValidProduct(data) {
+        return data.name is string && data.name.size() > 0 && data.name.size() < 200
+            && data.price is number && data.price >= 0
+            && data.category is string
+            && data.images is list
+            && data.stock is number;
+      }
+    }
+
+    // Categories
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Users
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) 
+                    && request.resource.data.role == 'user'
+                    && request.resource.data.keys().hasAll(['email', 'fullName', 'role']);
+      allow update: if isOwner(userId) 
+                    && request.resource.data.role == resource.data.role // Role is immutable
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fullName', 'wishlist', 'email']);
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isSignedIn() 
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.status == 'pending';
+      allow update: if isAdmin() 
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+    }
+  }
+}
